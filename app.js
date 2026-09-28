@@ -445,24 +445,26 @@ function renderHead() {
   });
   const thTick = document.createElement("th");
   thTick.className = "tickhead";
-  const headTick = document.createElement("input");
-  headTick.type = "checkbox";
-  headTick.id = "headTick";
-  headTick.checked = state.tickedOnly;
-  headTick.title = "Tampilkan hanya baris yang ditandai";
-  headTick.setAttribute("aria-label", "Tampilkan hanya baris yang ditandai");
-  headTick.addEventListener("change", () => {
-    state.tickedOnly = headTick.checked;
-    filteredCache = null;
-    state.page = 1;
-    render();
-    updateHeadIndicators();
-    updateResetState();
-  });
-  thTick.append(headTick);
+  const tickFilter = document.createElement("button");
+  tickFilter.type = "button";
+  tickFilter.id = "tickFilter";
+  tickFilter.className = "funnel";
+  tickFilter.setAttribute("aria-label", "Filter: tampilkan hanya baris yang ditandai");
+  tickFilter.addEventListener("click", () => setTickedOnly(!state.tickedOnly));
+  thTick.append(tickFilter);
   frag.append(thTick);
   els.headRow.replaceChildren(frag);
+  updateHeadTickState();
   refreshFrozenOffsets();
+}
+
+function setTickedOnly(value) {
+  state.tickedOnly = value;
+  filteredCache = null;
+  state.page = 1;
+  render();
+  updateHeadIndicators();
+  updateResetState();
 }
 
 function updateHeadIndicators() {
@@ -480,13 +482,14 @@ function updateHeadIndicators() {
   }
 }
 
-const headTickEl = () => document.getElementById("headTick");
-
 function updateHeadTickState() {
-  const headTick = headTickEl();
-  if (!headTick) return;
-  headTick.checked = state.tickedOnly;
-  const th = headTick.closest("th");
+  const button = document.getElementById("tickFilter");
+  if (!button) return;
+  button.setAttribute("aria-pressed", String(state.tickedOnly));
+  button.title = state.tickedOnly
+    ? "Menampilkan hanya baris yang ditandai — klik untuk menampilkan semua"
+    : "Tampilkan hanya baris yang ditandai";
+  const th = button.closest("th");
   if (th) th.classList.toggle("has-filter", state.tickedOnly);
 }
 
