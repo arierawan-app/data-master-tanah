@@ -1,6 +1,6 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
-const APP_VERSION = "20260928-2";
+const APP_VERSION = "20260928-3";
 
 const PAGE_SIZE = 50;
 const LIST_RENDER_LIMIT = 500;
@@ -94,6 +94,7 @@ const els = {
   quickSearch: document.getElementById("quickSearch"),
   resetFilters: document.getElementById("resetFilters"),
   exportBtn: document.getElementById("exportBtn"),
+  tickedFilterBtn: document.getElementById("tickedFilterBtn"),
   tableWrap: document.getElementById("tableWrap"),
   grid: document.getElementById("grid"),
   headRow: document.getElementById("headRow"),
@@ -447,16 +448,19 @@ function renderHead() {
   });
   const thTick = document.createElement("th");
   thTick.className = "tickhead";
-  const tickFilter = document.createElement("button");
-  tickFilter.type = "button";
-  tickFilter.id = "tickFilter";
-  tickFilter.className = "funnel";
-  tickFilter.setAttribute("aria-label", "Filter: tampilkan hanya baris yang ditandai");
-  tickFilter.addEventListener("click", () => setTickedOnly(!state.tickedOnly));
-  thTick.append(tickFilter);
+  const headTick = document.createElement("input");
+  headTick.type = "checkbox";
+  headTick.id = "headTick";
+  headTick.title = "Tandai semua baris yang tampil di halaman ini";
+  headTick.setAttribute("aria-label", "Tandai semua baris yang tampil di halaman ini");
+  headTick.addEventListener("change", () => {
+    const entries = [...els.tbody.querySelectorAll("tr")].map((tr) => [tr.dataset.id, headTick.checked]);
+    if (entries.length) setTicks(entries);
+  });
+  thTick.append(headTick);
   frag.append(thTick);
   els.headRow.replaceChildren(frag);
-  updateHeadTickState();
+  updateTickControls();
   refreshFrozenOffsets();
 }
 
@@ -484,15 +488,28 @@ function updateHeadIndicators() {
   }
 }
 
-function updateHeadTickState() {
-  const button = document.getElementById("tickFilter");
+function updateTickControls() {
+  const headTick = document.getElementById("headTick");
+  if (headTick) {
+    const rows = [...els.tbody.querySelectorAll("tr")];
+    if (!rows.length) {
+      headTick.checked = false;
+      headTick.indeterminate = false;
+      headTick.disabled = true;
+    } else {
+      headTick.disabled = false;
+      let count = 0;
+      for (const tr of rows) if (state.ticks.get(tr.dataset.id) === true) count++;
+      headTick.checked = count === rows.length;
+      headTick.indeterminate = count > 0 && count < rows.length;
+    }
+  }
+  const button = els.tickedFilterBtn;
   if (!button) return;
   button.setAttribute("aria-pressed", String(state.tickedOnly));
   button.title = state.tickedOnly
     ? "Menampilkan hanya baris yang ditandai — klik untuk menampilkan semua"
     : "Tampilkan hanya baris yang ditandai";
-  const th = button.closest("th");
-  if (th) th.classList.toggle("has-filter", state.tickedOnly);
 }
 
 function buildRow(row) {
@@ -615,7 +632,7 @@ function render() {
   renderRows(slice);
   renderPager(pages);
   updatePageInfo(filtered.length, start, slice.length);
-  updateHeadTickState();
+  updateTickControls();
   updateStats(filtered.length);
   els.tableEmpty.hidden = filtered.length !== 0;
   if (filtered.length === 0) {
@@ -638,7 +655,7 @@ function refreshTickUI(ids) {
     filteredCache = null;
     render();
   } else {
-    updateHeadTickState();
+    updateTickControls();
   }
 }
 
@@ -995,6 +1012,7 @@ els.panelInvert.addEventListener("click", () => {
 });
 
 els.resetFilters.addEventListener("click", clearAllFilters);
+els.tickedFilterBtn.addEventListener("click", () => setTickedOnly(!state.tickedOnly));
 els.emptyReset.addEventListener("click", clearAllFilters);
 els.exportBtn.addEventListener("click", exportTicked);
 

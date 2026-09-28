@@ -17,9 +17,11 @@ antar pengguna.
   kembali ke lebar awal, atau fokuskan pegangan lalu pakai tombol panah.
   Lebar tersimpan di browser dan kolom beku ikut menyesuaikan.
 - Kolom terakhir berisi kotak centang; baris yang ditandai berwarna hijau.
-- Ikon filter (funnel) di kepala kolom tanda berfungsi untuk menampilkan hanya
-  baris yang sudah ditandai (bisa digabung dengan filter lain dan pencarian
-  cepat).
+- Kotak centang di kepala kolom tanda menandai semua baris yang sedang tampil
+  di halaman aktif.
+- Tombol "Hanya ditandai" (di sebelah Export) menyaring tabel sehingga hanya
+  baris yang sudah ditandai yang tampil; bisa digabung dengan filter kolom dan
+  pencarian cepat, dan ikut dibersihkan oleh "Reset filter".
 - Export baris yang ditandai ke Excel (.xlsx) atau CSV.
 - Tanda tersimpan di Supabase sehingga semua pengguna melihat tanda yang sama
   (pembaruan realtime). Bila koneksi gagal, tanda disimpan di browser dan
