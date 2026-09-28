@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Master Tanah — Rekap Dokumen Tidak Lengkap</title>
+<meta name="description" content="Rekap berkas tanah dengan dokumen tidak lengkap: filter tiap kolom, tanda selesai, dan capaian penanganan.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230E6B4F'/%3E%3Cpath d='M8 17.5l5 5 11-12' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>Data Master Tanah</h1>
+    <p class="sub">Rekap berkas tanah belum lengkap · <span id="srcLabel">memuat…</span></p>
+  </div>
+  <div class="topbar-actions">
+    <p class="sync" id="syncBadge" data-state="loading"><span class="dot" aria-hidden="true"></span><span id="syncText">Memuat…</span></p>
+    <button type="button" class="btn" id="refreshBtn">Muat ulang tanda</button>
+  </div>
+</header>
+
+<section class="stats" aria-label="Ringkasan">
+  <article class="stat">
+    <h2>Total baris</h2>
+    <p class="num" id="statTotal">–</p>
+    <p class="hint" id="statFiltered"></p>
+  </article>
+  <article class="stat">
+    <h2>Sudah ditandai</h2>
+    <p class="num" id="statTicked">–</p>
+    <p class="hint" id="statTickedHint"></p>
+  </article>
+  <article class="stat">
+    <h2>Capaian</h2>
+    <p class="num" id="statPct">–</p>
+    <div class="bar" role="progressbar" id="statBarWrap" aria-label="Persentase baris ditandai" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <span id="statBar"></span>
+    </div>
+  </article>
+</section>
+
+<section class="tools">
+  <input type="search" id="quickSearch" class="search" placeholder="Cari cepat di semua kolom…" aria-label="Cari cepat di semua kolom">
+  <button type="button" class="btn" id="resetFilters" disabled>Reset filter</button>
+  <span class="spacer"></span>
+  <button type="button" class="btn primary" id="exportBtn">Export baris ditandai</button>
+</section>
+
+<main class="tablewrap" id="tableWrap">
+  <table id="grid">
+    <thead><tr id="headRow"></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <p class="empty" id="tableEmpty" hidden>Tidak ada baris yang cocok dengan filter. <button type="button" class="link" id="emptyReset">Reset filter</button></p>
+</main>
+
+<footer class="pager">
+  <p class="pageinfo" id="pageInfo"></p>
+  <nav class="pages" id="pageBtns" aria-label="Navigasi halaman"></nav>
+</footer>
+
+<div class="panel" id="filterPanel" hidden>
+  <div class="panel-head">
+    <p class="panel-title">Filter kolom <strong id="panelTitle"></strong></p>
+    <button type="button" class="iconbtn" id="panelClose" aria-label="Tutup panel filter">✕</button>
+  </div>
+  <div class="panel-body">
+    <label class="field">
+      <span>Cari di daftar nilai</span>
+      <input type="search" id="panelSearch" autocomplete="off">
+    </label>
+    <label class="field">
+      <span>Hanya baris yang mengandung teks</span>
+      <input type="text" id="panelContains" autocomplete="off" placeholder="mis. GIANYAR">
+    </label>
+    <div class="panel-list" id="panelList" role="group" aria-label="Daftar nilai"></div>
+    <p class="panel-note" id="panelNote"></p>
+  </div>
+  <div class="panel-foot">
+    <button type="button" class="link" id="panelAll">Pilih semua</button>
+    <button type="button" class="link" id="panelNone">Kosongkan</button>
+    <button type="button" class="link" id="panelInvert">Balik pilihan</button>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
