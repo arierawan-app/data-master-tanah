@@ -63,6 +63,10 @@ baris yang sama ketika data diekspor ulang.
 ## Catatan teknis
 
 - Situs statis di GitHub Pages (`index.html`, `styles.css`, `app.js`).
+- Setiap kali mengubah `styles.css` atau `app.js`, naikkan versi di tiga tempat:
+  `APP_VERSION` di `app.js`, query `?v=` di `index.html`, dan `version.json`.
+  Aplikasi memeriksa `version.json` dan memuat ulang sendiri saat ada versi
+  baru, sehingga pengguna tidak perlu hard-refresh.
 - `data.json` dihasilkan oleh `tools/export_data.py` (butuh `openpyxl`).
 - `config.js` memuat URL dan publishable key Supabase; kunci ini memang untuk
   dipakai di sisi klien dan dibatasi oleh row level security tabel `ticks`.

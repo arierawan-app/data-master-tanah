@@ -1,5 +1,7 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
+const APP_VERSION = "20260928-2";
+
 const PAGE_SIZE = 50;
 const LIST_RENDER_LIMIT = 500;
 const LS_TICKS = "dmt.ticks.v1";
@@ -913,6 +915,28 @@ function toast(message, kind = "info") {
   setTimeout(() => el.remove(), 4500);
 }
 
+/* ---------- version watch ---------- */
+
+async function checkVersion() {
+  try {
+    const response = await fetch(`version.json?_=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!data.v || data.v === APP_VERSION) return;
+    if (sessionStorage.getItem("dmt.reloadFor") === data.v) return;
+    sessionStorage.setItem("dmt.reloadFor", data.v);
+    location.reload();
+  } catch {}
+}
+
+function watchVersion() {
+  checkVersion();
+  setInterval(checkVersion, 120000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkVersion();
+  });
+}
+
 /* ---------- events ---------- */
 
 let quickTimer = null;
@@ -1027,6 +1051,7 @@ async function boot() {
   }
   renderHead();
   updateResetState();
+  watchVersion();
   await initTicks();
 }
 
