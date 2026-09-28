@@ -5,9 +5,38 @@ const LIST_RENDER_LIMIT = 500;
 const LS_TICKS = "dmt.ticks.v1";
 const LS_PENDING = "dmt.pending.v1";
 
+// Kolom yang disembunyikan dari tabel (tidak dihapus dari data/export).
+const HIDDEN_COLUMNS = [
+  "dok_kepemilikan",
+  "jns_dok_kepemilikan",
+  "kd_jns_serti",
+  "nm_jns_serti",
+  "no_dokumen",
+  "tgl_dokumen",
+  "status_sertipikasi",
+  "status_dok",
+  "status_validasi",
+  "ur_sts_valid_kpknl",
+  "ur_sts_valid_kanwil",
+];
+
+// Kolom beku (sticky) beserta lebar tetapnya, dihitung dari kiri.
+const FROZEN_WIDTHS = new Map([
+  ["No", 62],
+  ["kd_satker", 208],
+  ["ur_satker", 170],
+  ["ur_sskel", 132],
+  ["kd_brg", 116],
+  ["no_aset", 82],
+  ["luas_asset", 98],
+  ["luas_bidang", 106],
+  ["jml_bid", 80],
+]);
+
 const state = {
   columns: [],
   rows: [],
+  visible: [],
   filters: new Map(),
   quick: "",
   sort: null,
@@ -65,6 +94,28 @@ const els = {
 };
 
 const value = (row, col) => row[col + 1];
+
+let frozenOffsets = null;
+
+function frozenLeft(col) {
+  if (!frozenOffsets) {
+    frozenOffsets = new Map();
+    let left = 0;
+    for (const visibleCol of state.visible) {
+      const name = state.columns[visibleCol];
+      if (!FROZEN_WIDTHS.has(name)) break;
+      frozenOffsets.set(visibleCol, left);
+      left += FROZEN_WIDTHS.get(name);
+    }
+  }
+  return frozenOffsets.get(col);
+}
+
+function isFrozenEdge(col) {
+  const position = state.visible.indexOf(col);
+  const next = state.visible[position + 1];
+  return next === undefined || !FROZEN_WIDTHS.has(state.columns[next]);
+}
 
 function isFiltering() {
   return state.quick !== "" || state.filters.size > 0;
@@ -210,9 +261,20 @@ function updateResetState() {
 
 function renderHead() {
   const frag = document.createDocumentFragment();
-  state.columns.forEach((name, col) => {
+  state.visible.forEach((col) => {
+    const name = state.columns[col];
     const th = document.createElement("th");
     th.dataset.col = String(col);
+    const left = frozenLeft(col);
+    if (left !== undefined) {
+      const width = FROZEN_WIDTHS.get(name);
+      th.classList.add("frozen");
+      if (isFrozenEdge(col)) th.classList.add("frozen-edge");
+      th.style.width = `${width}px`;
+      th.style.minWidth = `${width}px`;
+      th.style.maxWidth = `${width}px`;
+      th.style.left = `${left}px`;
+    }
     const wrap = document.createElement("div");
     wrap.className = "th-wrap";
     const sortBtn = document.createElement("button");
@@ -290,9 +352,20 @@ function buildRow(row) {
   const tr = document.createElement("tr");
   tr.dataset.id = row[0];
   if (state.ticks.get(row[0]) === true) tr.classList.add("is-ticked");
-  state.columns.forEach((_, col) => {
+  state.visible.forEach((col) => {
     const td = document.createElement("td");
+    td.dataset.col = String(col);
     const text = value(row, col);
+    const left = frozenLeft(col);
+    if (left !== undefined) {
+      const width = FROZEN_WIDTHS.get(state.columns[col]);
+      td.classList.add("frozen");
+      if (isFrozenEdge(col)) td.classList.add("frozen-edge");
+      td.style.width = `${width}px`;
+      td.style.minWidth = `${width}px`;
+      td.style.maxWidth = `${width}px`;
+      td.style.left = `${left}px`;
+    }
     td.textContent = text;
     if (text.length > 24) td.title = text;
     tr.append(td);
@@ -781,6 +854,8 @@ async function boot() {
     const data = await response.json();
     state.columns = data.columns;
     state.rows = data.rows;
+    const hidden = new Set(HIDDEN_COLUMNS);
+    state.visible = data.columns.map((_, col) => col).filter((col) => !hidden.has(data.columns[col]));
     els.srcLabel.textContent = `${data.source} / ${data.sheet}`;
   } catch (error) {
     els.srcLabel.textContent = "data gagal dimuat";

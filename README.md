@@ -29,6 +29,16 @@ python3 -m http.server 8000
 
 Tidak ada proses build; seluruh berkas statis.
 
+## Tampilan kolom
+
+- Kolom `No` dan `kd_satker` sampai `jml_bid` dibekukan (sticky) sehingga tetap
+  terlihat saat tabel digeser ke kanan.
+- Kolom `dok_kepemilikan` sampai `ur_sts_valid_kanwil` disembunyikan dari tabel
+  (datanya tetap lengkap dan tetap ikut ter-export).
+- Pengaturan ada di `app.js`: `FROZEN_WIDTHS` (kolom beku + lebarnya) dan
+  `HIDDEN_COLUMNS` (kolom yang disembunyikan). Di layar sempit (<= 1100px)
+  pembekuan otomatis dinonaktifkan.
+
 ## Memperbarui data
 
 Jalankan ulang ekspor dari workbook sumber, lalu commit `data.json`:

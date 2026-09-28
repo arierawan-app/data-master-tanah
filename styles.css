@@ -263,8 +263,8 @@ thead th {
 .th-wrap {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 4px 6px 4px 12px;
+  gap: 0;
+  padding: 4px 4px 4px 10px;
   min-height: 38px;
 }
 
@@ -284,7 +284,7 @@ thead th[data-sorted="desc"] .th-sort::after { content: " ↓"; color: var(--ver
 
 .funnel {
   flex: 0 0 auto;
-  width: 22px;
+  width: 18px;
   height: 22px;
   display: grid;
   place-items: center;
@@ -319,18 +319,22 @@ tbody tr:hover td { background: var(--hover); }
 
 tbody tr.is-ticked td { background: var(--tick-bg); }
 tbody tr.is-ticked:hover td { background: var(--tick-bg-hover); }
-tbody tr.is-ticked td:first-child { box-shadow: inset 3px 0 0 var(--verdigris); }
 
-th:first-child, td:first-child {
+th.frozen, td.frozen {
   position: sticky;
-  left: 0;
   z-index: 2;
-  box-shadow: 1px 0 0 var(--line);
+  background: var(--surface);
 }
 
-tbody tr.is-ticked td:first-child { box-shadow: inset 3px 0 0 var(--verdigris), 1px 0 0 var(--line); }
+thead th.frozen { z-index: 4; }
 
-thead th:first-child { z-index: 4; }
+tbody tr:hover td.frozen { background: var(--hover); }
+tbody tr.is-ticked td.frozen { background: var(--tick-bg); }
+tbody tr.is-ticked:hover td.frozen { background: var(--tick-bg-hover); }
+
+th.frozen-edge, td.frozen-edge { box-shadow: 1px 0 0 var(--line); }
+
+tbody tr.is-ticked td.frozen:first-child { box-shadow: inset 3px 0 0 var(--verdigris); }
 
 th.tickhead, td.tickcell {
   position: sticky;
@@ -514,6 +518,11 @@ thead th.tickhead { z-index: 4; padding: 0 8px; }
   .tools { padding: 10px 14px; }
   .search { width: 100%; }
   .pager { padding: 9px 14px; }
+}
+
+@media (max-width: 1100px) {
+  th.frozen, td.frozen { position: static; }
+  th.frozen-edge, td.frozen-edge { box-shadow: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
