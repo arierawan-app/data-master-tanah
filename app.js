@@ -20,8 +20,21 @@ const HIDDEN_COLUMNS = [
   "ur_sts_valid_kanwil",
 ];
 
-// Kolom beku (sticky) beserta lebar tetapnya, dihitung dari kiri.
-const FROZEN_WIDTHS = new Map([
+// Kolom beku (sticky) dan lebar awalnya. Lebar bisa diubah pengguna dengan
+// menarik tepi kanan judul kolom; hasilnya disimpan di localStorage.
+const FROZEN_COLUMNS = new Set([
+  "No",
+  "kd_satker",
+  "ur_satker",
+  "ur_sskel",
+  "kd_brg",
+  "no_aset",
+  "luas_asset",
+  "luas_bidang",
+  "jml_bid",
+]);
+
+const DEFAULT_WIDTHS = new Map([
   ["No", 62],
   ["kd_satker", 208],
   ["ur_satker", 170],
@@ -33,10 +46,14 @@ const FROZEN_WIDTHS = new Map([
   ["jml_bid", 80],
 ]);
 
+const MIN_COLUMN_WIDTH = 56;
+const LS_WIDTHS = "dmt.widths.v1";
+
 const state = {
   columns: [],
   rows: [],
   visible: [],
+  widths: new Map(),
   filters: new Map(),
   quick: "",
   sort: null,
@@ -45,7 +62,9 @@ const state = {
 };
 
 const pending = new Map();
+const localWrites = new Map();
 const uniqueCache = new Map();
+const LOCAL_WRITE_TTL = 10000;
 let filteredCache = null;
 let supabase = null;
 let syncState = "loading";
@@ -95,26 +114,124 @@ const els = {
 
 const value = (row, col) => row[col + 1];
 
-let frozenOffsets = null;
-
-function frozenLeft(col) {
-  if (!frozenOffsets) {
-    frozenOffsets = new Map();
-    let left = 0;
-    for (const visibleCol of state.visible) {
-      const name = state.columns[visibleCol];
-      if (!FROZEN_WIDTHS.has(name)) break;
-      frozenOffsets.set(visibleCol, left);
-      left += FROZEN_WIDTHS.get(name);
-    }
-  }
-  return frozenOffsets.get(col);
+function isFrozen(col) {
+  return FROZEN_COLUMNS.has(state.columns[col]);
 }
 
 function isFrozenEdge(col) {
   const position = state.visible.indexOf(col);
   const next = state.visible[position + 1];
-  return next === undefined || !FROZEN_WIDTHS.has(state.columns[next]);
+  return next === undefined || !isFrozen(next);
+}
+
+function columnWidth(col) {
+  const width = state.widths.get(col);
+  if (width) return width;
+  const fallback = DEFAULT_WIDTHS.get(state.columns[col]);
+  if (fallback) return fallback;
+  const header = els.headRow.querySelector(`th[data-col="${col}"]`);
+  return header ? Math.round(header.getBoundingClientRect().width) : 120;
+}
+
+function applyColumnStyle(node, col) {
+  const width = state.widths.get(col) ?? (isFrozen(col) ? DEFAULT_WIDTHS.get(state.columns[col]) : undefined);
+  if (width) {
+    node.style.width = `${width}px`;
+    node.style.minWidth = `${width}px`;
+    node.style.maxWidth = `${width}px`;
+  } else {
+    node.style.width = "";
+    node.style.minWidth = "";
+    node.style.maxWidth = "";
+  }
+}
+
+function applyColumnWidth(col) {
+  const header = els.headRow.querySelector(`th[data-col="${col}"]`);
+  if (header) applyColumnStyle(header, col);
+  for (const cell of els.tbody.querySelectorAll(`td[data-col="${col}"]`)) applyColumnStyle(cell, col);
+}
+
+function refreshFrozenOffsets() {
+  const offsets = new Map();
+  let left = 0;
+  for (const col of state.visible) {
+    if (!isFrozen(col)) break;
+    offsets.set(col, left);
+    left += columnWidth(col);
+  }
+  for (const node of els.headRow.querySelectorAll("th.frozen")) {
+    const col = Number(node.dataset.col);
+    node.style.left = `${offsets.get(col) ?? 0}px`;
+  }
+  for (const node of els.tbody.querySelectorAll("td.frozen")) {
+    const col = Number(node.dataset.col);
+    node.style.left = `${offsets.get(col) ?? 0}px`;
+  }
+}
+
+let resizeFrame = null;
+function setColumnWidth(col, width, persist = true) {
+  state.widths.set(col, Math.max(MIN_COLUMN_WIDTH, Math.round(width)));
+  applyColumnWidth(col);
+  if (resizeFrame) cancelAnimationFrame(resizeFrame);
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = null;
+    refreshFrozenOffsets();
+  });
+  if (persist) persistWidths();
+}
+
+function resetColumnWidth(col) {
+  state.widths.delete(col);
+  applyColumnWidth(col);
+  refreshFrozenOffsets();
+  persistWidths();
+}
+
+function persistWidths() {
+  const stored = {};
+  for (const [col, width] of state.widths) stored[state.columns[col]] = width;
+  try {
+    localStorage.setItem(LS_WIDTHS, JSON.stringify(stored));
+  } catch {}
+}
+
+function loadWidths() {
+  try {
+    const raw = localStorage.getItem(LS_WIDTHS);
+    if (!raw) return;
+    const stored = JSON.parse(raw);
+    state.columns.forEach((name, col) => {
+      const width = Number(stored[name]);
+      if (Number.isFinite(width) && width >= MIN_COLUMN_WIDTH) state.widths.set(col, width);
+    });
+  } catch {}
+}
+
+function beginResize(event, col) {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const handle = event.currentTarget;
+  const header = handle.closest("th");
+  const startX = event.clientX;
+  const startWidth = header.getBoundingClientRect().width;
+  handle.setPointerCapture(event.pointerId);
+  document.body.classList.add("resizing");
+  handle.classList.add("active");
+  const move = (moveEvent) => setColumnWidth(col, startWidth + (moveEvent.clientX - startX), false);
+  const finish = () => {
+    handle.removeEventListener("pointermove", move);
+    handle.removeEventListener("pointerup", finish);
+    handle.removeEventListener("pointercancel", finish);
+    document.body.classList.remove("resizing");
+    handle.classList.remove("active");
+    persistWidths();
+  };
+  handle.addEventListener("pointermove", move);
+  handle.addEventListener("pointerup", finish);
+  handle.addEventListener("pointercancel", finish);
 }
 
 function isFiltering() {
@@ -259,22 +376,46 @@ function updateResetState() {
   els.resetFilters.disabled = !isFiltering();
 }
 
+function makeResizer(col, name) {
+  const handle = document.createElement("span");
+  handle.className = "resizer";
+  handle.setAttribute("role", "separator");
+  handle.setAttribute("aria-orientation", "vertical");
+  handle.setAttribute("aria-label", `Ubah lebar kolom ${name}`);
+  handle.tabIndex = 0;
+  handle.title = "Tarik untuk ubah lebar kolom · klik dua kali untuk lebar awal";
+  handle.addEventListener("pointerdown", (event) => beginResize(event, col));
+  handle.addEventListener("dblclick", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    resetColumnWidth(col);
+  });
+  handle.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowLeft") {
+      setColumnWidth(col, columnWidth(col) - 16);
+      event.preventDefault();
+    } else if (event.key === "ArrowRight") {
+      setColumnWidth(col, columnWidth(col) + 16);
+      event.preventDefault();
+    } else if (event.key === "Enter" || event.key === "Backspace") {
+      resetColumnWidth(col);
+      event.preventDefault();
+    }
+  });
+  return handle;
+}
+
 function renderHead() {
   const frag = document.createDocumentFragment();
   state.visible.forEach((col) => {
     const name = state.columns[col];
     const th = document.createElement("th");
     th.dataset.col = String(col);
-    const left = frozenLeft(col);
-    if (left !== undefined) {
-      const width = FROZEN_WIDTHS.get(name);
+    if (isFrozen(col)) {
       th.classList.add("frozen");
       if (isFrozenEdge(col)) th.classList.add("frozen-edge");
-      th.style.width = `${width}px`;
-      th.style.minWidth = `${width}px`;
-      th.style.maxWidth = `${width}px`;
-      th.style.left = `${left}px`;
     }
+    applyColumnStyle(th, col);
     const wrap = document.createElement("div");
     wrap.className = "th-wrap";
     const sortBtn = document.createElement("button");
@@ -295,7 +436,7 @@ function renderHead() {
       else openPanel(col, funnel);
     });
     wrap.append(sortBtn, funnel);
-    th.append(wrap);
+    th.append(wrap, makeResizer(col, name));
     frag.append(th);
   });
   const thTick = document.createElement("th");
@@ -312,6 +453,7 @@ function renderHead() {
   thTick.append(headTick);
   frag.append(thTick);
   els.headRow.replaceChildren(frag);
+  refreshFrozenOffsets();
 }
 
 function updateHeadIndicators() {
@@ -356,16 +498,11 @@ function buildRow(row) {
     const td = document.createElement("td");
     td.dataset.col = String(col);
     const text = value(row, col);
-    const left = frozenLeft(col);
-    if (left !== undefined) {
-      const width = FROZEN_WIDTHS.get(state.columns[col]);
+    if (isFrozen(col)) {
       td.classList.add("frozen");
       if (isFrozenEdge(col)) td.classList.add("frozen-edge");
-      td.style.width = `${width}px`;
-      td.style.minWidth = `${width}px`;
-      td.style.maxWidth = `${width}px`;
-      td.style.left = `${left}px`;
     }
+    applyColumnStyle(td, col);
     td.textContent = text;
     if (text.length > 24) td.title = text;
     tr.append(td);
@@ -387,6 +524,7 @@ function renderRows(slice) {
   const frag = document.createDocumentFragment();
   for (const index of slice) frag.append(buildRow(state.rows[index]));
   els.tbody.replaceChildren(frag);
+  refreshFrozenOffsets();
 }
 
 function renderPager(pages) {
@@ -506,9 +644,14 @@ function loadLocalTicks() {
 }
 
 function setTicks(entries) {
+  const now = Date.now();
   for (const [id, ticked] of entries) {
     state.ticks.set(id, ticked);
     pending.set(id, ticked);
+    localWrites.set(id, { ticked, at: now });
+  }
+  for (const [id, write] of localWrites) {
+    if (now - write.at > LOCAL_WRITE_TTL) localWrites.delete(id);
   }
   persistLocal();
   refreshTickUI(entries.map(([id]) => id));
@@ -579,6 +722,9 @@ function subscribeRealtime() {
       const record = payload.new;
       if (!record || typeof record.row_id !== "string") return;
       const ticked = record.ticked === true;
+      const local = localWrites.get(record.row_id);
+      if (local && local.ticked !== ticked && Date.now() - local.at < LOCAL_WRITE_TTL) return;
+      if (local && local.ticked === ticked) localWrites.delete(record.row_id);
       state.ticks.set(record.row_id, ticked);
       if (pending.get(record.row_id) === ticked) pending.delete(record.row_id);
       persistLocal();
@@ -856,6 +1002,7 @@ async function boot() {
     state.rows = data.rows;
     const hidden = new Set(HIDDEN_COLUMNS);
     state.visible = data.columns.map((_, col) => col).filter((col) => !hidden.has(data.columns[col]));
+    loadWidths();
     els.srcLabel.textContent = `${data.source} / ${data.sheet}`;
   } catch (error) {
     els.srcLabel.textContent = "data gagal dimuat";

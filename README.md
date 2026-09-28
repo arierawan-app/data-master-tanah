@@ -13,12 +13,16 @@ antar pengguna.
 - Filter per kolom gaya Excel: cari nilai, pilih beberapa nilai, atau "mengandung teks".
 - Pagination 50 baris per halaman, plus pencarian cepat di seluruh kolom.
 - Klik judul kolom untuk mengurutkan (angka, tanggal `dd/mm/yyyy`, dan teks).
+- Lebar kolom bisa diubah: tarik tepi kanan judul kolom, klik dua kali untuk
+  kembali ke lebar awal, atau fokuskan pegangan lalu pakai tombol panah.
+  Lebar tersimpan di browser dan kolom beku ikut menyesuaikan.
 - Kolom terakhir berisi kotak centang; baris yang ditandai berwarna hijau.
 - Kotak centang di kepala kolom menandai semua baris pada halaman aktif.
 - Export baris yang ditandai ke Excel (.xlsx) atau CSV.
 - Tanda tersimpan di Supabase sehingga semua pengguna melihat tanda yang sama
   (pembaruan realtime). Bila koneksi gagal, tanda disimpan di browser dan
-  dikirim ulang otomatis saat online.
+  dikirim ulang otomatis saat online. Aplikasi hanya menambah/mengubah tanda —
+  tidak pernah menghapus.
 
 ## Menjalankan secara lokal
 
@@ -35,9 +39,11 @@ Tidak ada proses build; seluruh berkas statis.
   terlihat saat tabel digeser ke kanan.
 - Kolom `dok_kepemilikan` sampai `ur_sts_valid_kanwil` disembunyikan dari tabel
   (datanya tetap lengkap dan tetap ikut ter-export).
-- Pengaturan ada di `app.js`: `FROZEN_WIDTHS` (kolom beku + lebarnya) dan
+- Lebar kolom diatur pengguna dan disimpan di `localStorage`
+  (`dmt.widths.v1`); kolom beku memakai lebar awal dari `DEFAULT_WIDTHS`.
+- Pengaturan ada di `app.js`: `FROZEN_COLUMNS` (kolom beku) dan
   `HIDDEN_COLUMNS` (kolom yang disembunyikan). Di layar sempit (<= 1100px)
-  pembekuan otomatis dinonaktifkan.
+  pembekuan horizontal otomatis dinonaktifkan; ubah lebar kolom tetap bisa.
 
 ## Memperbarui data
 
