@@ -59,6 +59,7 @@ const state = {
   sort: null,
   page: 1,
   ticks: new Map(),
+  tickedOnly: false,
 };
 
 const pending = new Map();
@@ -96,6 +97,7 @@ const els = {
   headRow: document.getElementById("headRow"),
   tbody: document.getElementById("tbody"),
   tableEmpty: document.getElementById("tableEmpty"),
+  emptyMsg: document.getElementById("emptyMsg"),
   emptyReset: document.getElementById("emptyReset"),
   pageInfo: document.getElementById("pageInfo"),
   pageBtns: document.getElementById("pageBtns"),
@@ -235,7 +237,7 @@ function beginResize(event, col) {
 }
 
 function isFiltering() {
-  return state.quick !== "" || state.filters.size > 0;
+  return state.quick !== "" || state.filters.size > 0 || state.tickedOnly;
 }
 
 function toggleSort(col) {
@@ -287,6 +289,7 @@ function getFiltered() {
   if (filteredCache) return filteredCache;
   const out = [];
   state.rows.forEach((row, index) => {
+    if (state.tickedOnly && state.ticks.get(row[0]) !== true) return;
     if (matchesQuick(row) && matchesFilters(row)) out.push(index);
   });
   if (state.sort) {
@@ -362,6 +365,7 @@ function afterFilterChange(col, refreshList) {
 
 function clearAllFilters() {
   state.filters.clear();
+  state.tickedOnly = false;
   state.quick = "";
   els.quickSearch.value = "";
   closePanel();
@@ -444,11 +448,16 @@ function renderHead() {
   const headTick = document.createElement("input");
   headTick.type = "checkbox";
   headTick.id = "headTick";
-  headTick.title = "Tandai semua baris di halaman ini";
-  headTick.setAttribute("aria-label", "Tandai semua baris di halaman ini");
+  headTick.checked = state.tickedOnly;
+  headTick.title = "Tampilkan hanya baris yang ditandai";
+  headTick.setAttribute("aria-label", "Tampilkan hanya baris yang ditandai");
   headTick.addEventListener("change", () => {
-    const entries = [...els.tbody.querySelectorAll("tr")].map((tr) => [tr.dataset.id, headTick.checked]);
-    if (entries.length) setTicks(entries);
+    state.tickedOnly = headTick.checked;
+    filteredCache = null;
+    state.page = 1;
+    render();
+    updateHeadIndicators();
+    updateResetState();
   });
   thTick.append(headTick);
   frag.append(thTick);
@@ -473,21 +482,12 @@ function updateHeadIndicators() {
 
 const headTickEl = () => document.getElementById("headTick");
 
-function updatePageCheckbox() {
+function updateHeadTickState() {
   const headTick = headTickEl();
   if (!headTick) return;
-  const rows = [...els.tbody.querySelectorAll("tr")];
-  if (!rows.length) {
-    headTick.checked = false;
-    headTick.indeterminate = false;
-    headTick.disabled = true;
-    return;
-  }
-  headTick.disabled = false;
-  let count = 0;
-  for (const tr of rows) if (state.ticks.get(tr.dataset.id) === true) count++;
-  headTick.checked = count === rows.length;
-  headTick.indeterminate = count > 0 && count < rows.length;
+  headTick.checked = state.tickedOnly;
+  const th = headTick.closest("th");
+  if (th) th.classList.toggle("has-filter", state.tickedOnly);
 }
 
 function buildRow(row) {
@@ -610,9 +610,14 @@ function render() {
   renderRows(slice);
   renderPager(pages);
   updatePageInfo(filtered.length, start, slice.length);
-  updatePageCheckbox();
+  updateHeadTickState();
   updateStats(filtered.length);
   els.tableEmpty.hidden = filtered.length !== 0;
+  if (filtered.length === 0) {
+    els.emptyMsg.textContent = state.tickedOnly
+      ? "Belum ada baris yang ditandai."
+      : "Tidak ada baris yang cocok dengan filter.";
+  }
 }
 
 function refreshTickUI(ids) {
@@ -624,7 +629,12 @@ function refreshTickUI(ids) {
     const box = tr.querySelector("input[type=checkbox]");
     if (box) box.checked = ticked;
   }
-  updatePageCheckbox();
+  if (state.tickedOnly) {
+    filteredCache = null;
+    render();
+  } else {
+    updateHeadTickState();
+  }
 }
 
 function persistLocal() {
@@ -1007,7 +1017,8 @@ async function boot() {
   } catch (error) {
     els.srcLabel.textContent = "data gagal dimuat";
     els.tableEmpty.hidden = false;
-    els.tableEmpty.textContent = "Data tidak dapat dimuat. Muat ulang halaman untuk mencoba lagi.";
+    els.emptyMsg.textContent = "Data tidak dapat dimuat. Muat ulang halaman untuk mencoba lagi.";
+    els.emptyReset.hidden = true;
     toast("Data gagal dimuat. Periksa koneksi lalu muat ulang.", "warn");
     return;
   }

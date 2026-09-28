@@ -383,6 +383,8 @@ tbody tr.is-ticked:hover td.tickcell { background: var(--tick-bg-hover); }
 
 thead th.tickhead { z-index: 4; padding: 0 8px; }
 
+thead th.tickhead.has-filter { background: #eef7f2; box-shadow: -1px 0 0 var(--line), inset 0 -2px 0 var(--verdigris); }
+
 .tickcell input, .tickhead input {
   width: 17px;
   height: 17px;

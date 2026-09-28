@@ -17,7 +17,9 @@ antar pengguna.
   kembali ke lebar awal, atau fokuskan pegangan lalu pakai tombol panah.
   Lebar tersimpan di browser dan kolom beku ikut menyesuaikan.
 - Kolom terakhir berisi kotak centang; baris yang ditandai berwarna hijau.
-- Kotak centang di kepala kolom menandai semua baris pada halaman aktif.
+- Kotak centang di kepala kolom tanda berfungsi sebagai filter: centang untuk
+  menampilkan hanya baris yang sudah ditandai (bisa digabung dengan filter lain
+  dan pencarian cepat).
 - Export baris yang ditandai ke Excel (.xlsx) atau CSV.
 - Tanda tersimpan di Supabase sehingga semua pengguna melihat tanda yang sama
   (pembaruan realtime). Bila koneksi gagal, tanda disimpan di browser dan
