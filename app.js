@@ -1,9 +1,11 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
-const APP_VERSION = "20261003-3";
+const APP_VERSION = "20261003-4";
 
 const PAGE_SIZE = 50;
 const LIST_RENDER_LIMIT = 500;
+const ISSUE_COUNT = 5;
+const ZERO_PATTERN = /^[+-]?0+(?:[.,]0+)?$/;
 const LS_TICKS = "dmt.ticks.v1";
 const LS_PENDING = "dmt.pending.v1";
 
@@ -54,6 +56,7 @@ const state = {
   widths: new Map(),
   tickWidth: 0,
   filters: new Map(),
+  missing: new Set(),
   quick: "",
   sort: null,
   page: 1,
@@ -92,6 +95,8 @@ const els = {
   resetFilters: document.getElementById("resetFilters"),
   exportBtn: document.getElementById("exportBtn"),
   tickedFilterBtn: document.getElementById("tickedFilterBtn"),
+  issues: document.getElementById("issues"),
+  issueStrip: document.getElementById("issueStrip"),
   tableWrap: document.getElementById("tableWrap"),
   grid: document.getElementById("grid"),
   headRow: document.getElementById("headRow"),
@@ -303,7 +308,12 @@ function beginResize(event, col) {
 }
 
 function isFiltering() {
-  return state.quick !== "" || state.filters.size > 0 || state.tickedOnly;
+  return state.quick !== "" || state.filters.size > 0 || state.tickedOnly || state.missing.size > 0;
+}
+
+function isMissingValue(text) {
+  const v = text.trim();
+  return v === "" || ZERO_PATTERN.test(v);
 }
 
 function toggleSort(col) {
@@ -351,12 +361,30 @@ function matchesFilters(row) {
   return true;
 }
 
+// Saringan kartu kolom kosong: semua kolom terpilih harus kosong/0 (AND).
+function matchesMissing(row) {
+  for (const col of state.missing) {
+    if (!isMissingValue(value(row, col))) return false;
+  }
+  return true;
+}
+
+// Baris yang cocok dengan filter kolom/pencarian/tanda, tanpa saringan kartu.
+function getIssueBase() {
+  const out = [];
+  state.rows.forEach((row, index) => {
+    if (state.tickedOnly && state.ticks.get(row[0]) !== true) return;
+    if (matchesQuick(row) && matchesFilters(row)) out.push(index);
+  });
+  return out;
+}
+
 function getFiltered() {
   if (filteredCache) return filteredCache;
   const out = [];
   state.rows.forEach((row, index) => {
     if (state.tickedOnly && state.ticks.get(row[0]) !== true) return;
-    if (matchesQuick(row) && matchesFilters(row)) out.push(index);
+    if (matchesQuick(row) && matchesFilters(row) && matchesMissing(row)) out.push(index);
   });
   if (state.sort) {
     const { col, dir } = state.sort;
@@ -431,6 +459,7 @@ function afterFilterChange(col, refreshList) {
 
 function clearAllFilters() {
   state.filters.clear();
+  state.missing.clear();
   state.tickedOnly = false;
   state.quick = "";
   els.quickSearch.value = "";
@@ -702,12 +731,66 @@ function render() {
   updatePageInfo(filtered.length, start, slice.length);
   updateTickControls();
   updateStats(filtered.length);
+  updateIssues();
   els.tableEmpty.hidden = filtered.length !== 0;
   if (filtered.length === 0) {
     els.emptyMsg.textContent = state.tickedOnly
       ? "Belum ada baris yang ditandai."
       : "Tidak ada baris yang cocok dengan filter.";
   }
+}
+
+// Kartu ringkasan untuk 5 kolom terakhir: jumlah baris kosong/0 pada hasil
+// filter yang sedang aktif (di luar saringan kartu itu sendiri). Klik kartu
+// menambah saringan; beberapa kartu digabung dengan AND.
+function updateIssues() {
+  if (!els.issueStrip) return;
+  const cols = state.visible.slice(-ISSUE_COUNT);
+  if (!cols.length) return;
+  const base = getIssueBase();
+  const frag = document.createDocumentFragment();
+  for (const col of cols) {
+    const name = state.columns[col];
+    let count = 0;
+    for (const index of base) {
+      if (isMissingValue(value(state.rows[index], col))) count++;
+    }
+    const active = state.missing.has(col);
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "issue-card";
+    card.dataset.col = String(col);
+    card.setAttribute("aria-pressed", String(active));
+    card.title = active
+      ? `Hapus saringan ${name} dari tabel`
+      : `Tampilkan hanya baris dengan ${name} kosong / 0`;
+    const label = document.createElement("span");
+    label.className = "issue-name";
+    label.textContent = name;
+    label.title = name;
+    const num = document.createElement("span");
+    num.className = "issue-num";
+    num.textContent = nf.format(count);
+    if (count === 0) num.classList.add("ok");
+    const sub = document.createElement("span");
+    sub.className = "issue-sub";
+    if (!base.length) sub.textContent = "tidak ada baris";
+    else if (count === 0) sub.textContent = "lengkap";
+    else sub.textContent = `${nf1.format((count / base.length) * 100)}% kosong / 0`;
+    card.append(label, num, sub);
+    frag.append(card);
+  }
+  els.issueStrip.replaceChildren(frag);
+  els.issues.hidden = false;
+}
+
+function toggleMissing(col) {
+  if (state.missing.has(col)) state.missing.delete(col);
+  else state.missing.add(col);
+  filteredCache = null;
+  state.page = 1;
+  render();
+  updateResetState();
 }
 
 function refreshTickUI(ids) {
@@ -1081,6 +1164,11 @@ els.panelInvert.addEventListener("click", () => {
 
 els.resetFilters.addEventListener("click", clearAllFilters);
 els.tickedFilterBtn.addEventListener("click", () => setTickedOnly(!state.tickedOnly));
+els.issueStrip.addEventListener("click", (event) => {
+  const card = event.target.closest(".issue-card");
+  if (!card) return;
+  toggleMissing(Number(card.dataset.col));
+});
 els.emptyReset.addEventListener("click", clearAllFilters);
 els.exportBtn.addEventListener("click", exportTicked);
 
