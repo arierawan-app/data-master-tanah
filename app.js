@@ -1,6 +1,6 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
-const APP_VERSION = "20261003-10";
+const APP_VERSION = "20261003-11";
 
 const PAGE_SIZE = 50;
 const LIST_RENDER_LIMIT = 500;

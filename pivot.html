@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pivot — Data Master Tanah</title>
-<meta name="description" content="Analisis pivot sederhana data master tanah: kelompokkan baris dan pilih ukuran yang ingin dihitung.">
+<meta name="description" content="Analisis pivot sederhana data master tanah: kelompok tetap kode satker dan nama satker, pilih ukuran yang ingin dihitung.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230E6B4F'/%3E%3Cpath d='M8 17.5l5 5 11-12' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20261003-10">
+<link rel="stylesheet" href="styles.css?v=20261003-11">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
 </head>
 <body class="pivot-page">
@@ -25,9 +25,7 @@
 
 <section class="tools pivot-tools" aria-label="Pengaturan pivot">
   <input type="search" id="pivotSearch" class="search" placeholder="Saring baris (semua kolom)…" aria-label="Saring baris pada semua kolom">
-  <label class="field-inline">Kelompok baris
-    <select id="groupSelect" aria-label="Kolom kelompok baris"></select>
-  </label>
+  <p class="pivot-info" id="pivotInfo"></p>
   <span class="spacer"></span>
   <button type="button" class="btn primary" id="pivotExport">Export pivot</button>
 </section>
@@ -53,13 +51,8 @@
   <p class="empty" id="pivotEmpty" hidden>Tidak ada grup yang cocok dengan pencarian.</p>
 </main>
 
-<footer class="pager">
-  <p class="pageinfo" id="pivotInfo"></p>
-  <nav class="pages" id="pivotPager" aria-label="Navigasi halaman pivot"></nav>
-</footer>
-
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<script type="module" src="pivot.js?v=20261003-10"></script>
+<script type="module" src="pivot.js?v=20261003-11"></script>
 </body>
 </html>

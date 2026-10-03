@@ -1,6 +1,5 @@
-const APP_VERSION = "20261003-10";
+const APP_VERSION = "20261003-11";
 
-const PAGE_SIZE = 50;
 const ISSUE_COUNT = 5;
 const ZERO_PATTERN = /^[+-]?0+(?:[.,]0+)?$/;
 const LS_PREFS = "dmt.pivot.v1";
@@ -8,30 +7,27 @@ const LS_PREFS = "dmt.pivot.v1";
 const state = {
   columns: [],
   rows: [],
-  groupCol: 0,
+  kodeCol: 0,
+  namaCol: 1,
   luasCol: -1,
   showCount: true,
   showLuas: false,
   missing: new Set(),
   quick: "",
-  sort: null,
-  page: 1,
+  sort: { key: "no", dir: 1 },
 };
 
 const els = {
   search: document.getElementById("pivotSearch"),
-  groupSelect: document.getElementById("groupSelect"),
+  info: document.getElementById("pivotInfo"),
   mCount: document.getElementById("mCount"),
   mLuas: document.getElementById("mLuas"),
   missingBoxes: document.getElementById("missingBoxes"),
   exportBtn: document.getElementById("pivotExport"),
-  table: document.getElementById("pivotTable"),
   headRow: document.getElementById("pivotHead"),
   body: document.getElementById("pivotBody"),
   footRow: document.getElementById("pivotFoot"),
   empty: document.getElementById("pivotEmpty"),
-  info: document.getElementById("pivotInfo"),
-  pager: document.getElementById("pivotPager"),
   toasts: document.getElementById("toasts"),
 };
 
@@ -69,7 +65,6 @@ function matchesQuick(row) {
 function savePrefs() {
   try {
     localStorage.setItem(LS_PREFS, JSON.stringify({
-      group: state.columns[state.groupCol],
       count: state.showCount,
       luas: state.showLuas,
       missing: [...state.missing].map((col) => state.columns[col]),
@@ -82,8 +77,6 @@ function loadPrefs() {
     const raw = localStorage.getItem(LS_PREFS);
     if (!raw) return;
     const stored = JSON.parse(raw);
-    const group = state.columns.indexOf(stored.group);
-    if (group >= 0) state.groupCol = group;
     state.showCount = stored.count !== false;
     state.showLuas = stored.luas === true && state.luasCol >= 0;
     const missing = new Set();
@@ -101,10 +94,12 @@ function computeGroups() {
   const map = new Map();
   for (const row of state.rows) {
     if (!matchesQuick(row)) continue;
-    const key = value(row, state.groupCol);
+    const kode = value(row, state.kodeCol);
+    const nama = value(row, state.namaCol);
+    const key = `${kode}\u0000${nama}`;
     let group = map.get(key);
     if (!group) {
-      group = { key, count: 0, luas: 0, missing: new Map() };
+      group = { kode, nama, count: 0, luas: 0, missing: new Map() };
       map.set(key, group);
     }
     group.count++;
@@ -114,6 +109,10 @@ function computeGroups() {
     }
   }
   return [...map.values()];
+}
+
+function compareDefault(a, b) {
+  return collator.compare(a.kode, b.kode) || collator.compare(a.nama, b.nama);
 }
 
 function measures() {
@@ -136,17 +135,14 @@ function measures() {
 }
 
 function sortGroups(groups, measureList) {
-  if (!state.sort) return groups;
+  const measure = measureList.find((m) => m.key === state.sort.key);
   const { key, dir } = state.sort;
-  const measure = measureList.find((m) => m.key === key);
   return groups.sort((a, b) => {
     if (measure) return (measure.get(a) - measure.get(b)) * dir;
-    return collator.compare(a.key, b.key) * dir;
+    if (key === "kode") return (collator.compare(a.kode, b.kode) || compareDefault(a, b)) * dir;
+    if (key === "nama") return (collator.compare(a.nama, b.nama) || compareDefault(a, b)) * dir;
+    return compareDefault(a, b) * dir;
   });
-}
-
-function displayGroup(key) {
-  return key === "" ? "(kosong)" : key;
 }
 
 /* ---------- rendering ---------- */
@@ -156,7 +152,7 @@ function makeSortButton(label, key, extraClass) {
   if (extraClass) th.className = extraClass;
   th.dataset.key = key;
   const wrap = document.createElement("div");
-  wrap.className = "th-wrap pivot-head";
+  wrap.className = "th-wrap";
   const button = document.createElement("button");
   button.type = "button";
   button.className = "th-sort";
@@ -170,29 +166,36 @@ function makeSortButton(label, key, extraClass) {
 
 function renderHead(measureList) {
   const frag = document.createDocumentFragment();
-  frag.append(makeSortButton(state.columns[state.groupCol], "group", "pivot-first"));
+  frag.append(makeSortButton("No", "no", "pivot-no"));
+  frag.append(makeSortButton(state.columns[state.kodeCol], "kode"));
+  frag.append(makeSortButton(state.columns[state.namaCol], "nama"));
   for (const measure of measureList) {
     frag.append(makeSortButton(measure.label, measure.key, "num"));
   }
   els.headRow.replaceChildren(frag);
 }
 
-function renderBody(groups, measureList, slice) {
-  const colSpan = measureList.length + 1;
+function renderBody(groups, measureList) {
   if (!groups.length) {
     els.body.replaceChildren();
     els.footRow.replaceChildren();
     return;
   }
   const frag = document.createDocumentFragment();
-  for (const group of slice) {
+  groups.forEach((group, index) => {
     const tr = document.createElement("tr");
-    const tdGroup = document.createElement("td");
-    tdGroup.className = "pivot-first";
-    const label = displayGroup(group.key);
-    tdGroup.textContent = label;
-    if (label.length > 24) tdGroup.title = label;
-    tr.append(tdGroup);
+    const tdNo = document.createElement("td");
+    tdNo.className = "pivot-no";
+    tdNo.textContent = String(index + 1);
+    tr.append(tdNo);
+    const tdKode = document.createElement("td");
+    tdKode.textContent = group.kode;
+    if (group.kode.length > 24) tdKode.title = group.kode;
+    tr.append(tdKode);
+    const tdNama = document.createElement("td");
+    tdNama.textContent = group.nama === "" ? "(kosong)" : group.nama;
+    if (group.nama.length > 24) tdNama.title = group.nama;
+    tr.append(tdNama);
     for (const measure of measureList) {
       const td = document.createElement("td");
       td.className = "num";
@@ -200,12 +203,12 @@ function renderBody(groups, measureList, slice) {
       tr.append(td);
     }
     frag.append(tr);
-  }
+  });
   els.body.replaceChildren(frag);
 
   const foot = document.createDocumentFragment();
   const tdTotal = document.createElement("td");
-  tdTotal.className = "pivot-first";
+  tdTotal.colSpan = 3;
   tdTotal.textContent = "TOTAL";
   foot.append(tdTotal);
   for (const measure of measureList) {
@@ -215,91 +218,33 @@ function renderBody(groups, measureList, slice) {
     foot.append(td);
   }
   els.footRow.replaceChildren(foot);
-  void colSpan;
-}
-
-function renderPager(pages) {
-  const current = state.page;
-  const frag = document.createDocumentFragment();
-  const makeBtn = (label, page, options = {}) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = label;
-    if (options.title) btn.title = options.title;
-    if (options.current) btn.setAttribute("aria-current", "page");
-    if (options.disabled) btn.disabled = true;
-    else if (!options.current) btn.addEventListener("click", () => goToPage(page));
-    return btn;
-  };
-  frag.append(makeBtn("‹", current - 1, { disabled: current <= 1, title: "Halaman sebelumnya" }));
-  const windowSize = 2;
-  let start = Math.max(1, current - windowSize);
-  let end = Math.min(pages, start + windowSize * 2);
-  start = Math.max(1, end - windowSize * 2);
-  if (start > 1) {
-    frag.append(makeBtn("1", 1, { current: current === 1 }));
-    if (start > 2) {
-      const gap = document.createElement("span");
-      gap.className = "gap";
-      gap.textContent = "…";
-      frag.append(gap);
-    }
-  }
-  for (let page = start; page <= end; page++) {
-    frag.append(makeBtn(String(page), page, { current: page === current }));
-  }
-  if (end < pages) {
-    if (end < pages - 1) {
-      const gap = document.createElement("span");
-      gap.className = "gap";
-      gap.textContent = "…";
-      frag.append(gap);
-    }
-    frag.append(makeBtn(String(pages), pages, { current: current === pages }));
-  }
-  frag.append(makeBtn("›", current + 1, { disabled: current >= pages, title: "Halaman berikutnya" }));
-  els.pager.replaceChildren(frag);
-}
-
-function goToPage(page) {
-  state.page = page;
-  render();
-  document.getElementById("tableWrap").scrollTop = 0;
 }
 
 function toggleSort(key) {
-  if (state.sort && state.sort.key === key) {
-    state.sort = state.sort.dir === 1 ? { key, dir: -1 } : null;
+  if (state.sort.key === key) {
+    state.sort = state.sort.dir === 1 ? { key, dir: -1 } : { key: "no", dir: 1 };
   } else {
     state.sort = { key, dir: 1 };
   }
-  state.page = 1;
   render();
 }
 
 function updateHeadIndicators() {
   for (const th of els.headRow.children) {
-    th.dataset.sorted = state.sort && state.sort.key === th.dataset.key ? (state.sort.dir === 1 ? "asc" : "desc") : "";
+    th.dataset.sorted = state.sort.key === th.dataset.key ? (state.sort.dir === 1 ? "asc" : "desc") : "";
   }
 }
 
 function render() {
   const measureList = measures();
   const groups = sortGroups(computeGroups(), measureList);
-  const pages = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));
-  if (state.page > pages) state.page = pages;
-  const start = (state.page - 1) * PAGE_SIZE;
-  const slice = groups.slice(start, start + PAGE_SIZE);
   renderHead(measureList);
-  renderBody(groups, measureList, slice);
-  renderPager(pages);
+  renderBody(groups, measureList);
   updateHeadIndicators();
-  if (groups.length) {
-    els.info.textContent = `Menampilkan ${start + 1}–${start + slice.length} dari ${nf.format(groups.length)} grup` +
-      (state.quick ? ` (pencarian aktif)` : "");
-  } else {
-    els.info.textContent = "0 grup";
-  }
+  const totalRows = groups.reduce((sum, g) => sum + g.count, 0);
+  els.info.textContent = groups.length
+    ? `${nf.format(groups.length)} grup · ${nf.format(totalRows)} baris${state.quick ? " (pencarian aktif)" : ""}`
+    : "0 grup";
   els.empty.hidden = groups.length !== 0;
 }
 
@@ -340,11 +285,11 @@ function exportPivot() {
     return;
   }
   const aoa = [
-    [state.columns[state.groupCol], ...measureList.map((m) => m.label)],
-    ...groups.map((group) => [displayGroup(group.key), ...measureList.map((m) => m.get(group))]),
-    ["TOTAL", ...measureList.map((m) => m.total(groups))],
+    ["No", state.columns[state.kodeCol], state.columns[state.namaCol], ...measureList.map((m) => m.label)],
+    ...groups.map((group, index) => [index + 1, group.kode, group.nama, ...measureList.map((m) => m.get(group))]),
+    ["TOTAL", "", "", ...measureList.map((m) => m.total(groups))],
   ];
-  const name = `pivot-${state.columns[state.groupCol]}-${timestamp()}`;
+  const name = `pivot-satker-${timestamp()}`;
   if (window.XLSX) {
     const sheet = window.XLSX.utils.aoa_to_sheet(aoa);
     sheet["!cols"] = aoa[0].map((_, i) => ({
@@ -406,7 +351,6 @@ function buildMissingBoxes() {
     box.addEventListener("change", () => {
       if (box.checked) state.missing.add(col);
       else state.missing.delete(col);
-      state.page = 1;
       savePrefs();
       render();
     });
@@ -418,33 +362,13 @@ function buildMissingBoxes() {
   els.missingBoxes.replaceChildren(frag);
 }
 
-function buildGroupSelect() {
-  const frag = document.createDocumentFragment();
-  state.columns.forEach((name, col) => {
-    const option = document.createElement("option");
-    option.value = String(col);
-    option.textContent = name;
-    frag.append(option);
-  });
-  els.groupSelect.replaceChildren(frag);
-  els.groupSelect.value = String(state.groupCol);
-}
-
 let searchTimer = null;
 els.search.addEventListener("input", () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
     state.quick = els.search.value.trim().toLowerCase();
-    state.page = 1;
     render();
   }, 150);
-});
-
-els.groupSelect.addEventListener("change", () => {
-  state.groupCol = Number(els.groupSelect.value);
-  state.page = 1;
-  savePrefs();
-  render();
 });
 
 els.mCount.addEventListener("change", () => {
@@ -470,8 +394,9 @@ async function boot() {
     const data = await response.json();
     state.columns = data.columns;
     state.rows = data.rows;
+    state.kodeCol = Math.max(0, data.columns.indexOf("kode_satker"));
+    state.namaCol = Math.max(0, data.columns.indexOf("nama_satker"));
     state.luasCol = data.columns.indexOf("luas");
-    state.groupCol = Math.max(0, data.columns.indexOf("nama_satker"));
     state.missing = new Set(issueColumns());
     loadPrefs();
   } catch (error) {
@@ -480,7 +405,6 @@ async function boot() {
     toast("Data gagal dimuat. Periksa koneksi lalu muat ulang.", "warn");
     return;
   }
-  buildGroupSelect();
   buildMissingBoxes();
   els.mCount.checked = state.showCount;
   els.mLuas.checked = state.showLuas;
