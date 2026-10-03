@@ -1,6 +1,6 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
-const APP_VERSION = "20261003-7";
+const APP_VERSION = "20261003-8";
 
 const PAGE_SIZE = 50;
 const LIST_RENDER_LIMIT = 500;
@@ -80,7 +80,6 @@ const nf1 = new Intl.NumberFormat("id-ID", { minimumFractionDigits: 1, maximumFr
 const datePattern = /^(\d{2})\/(\d{2})\/(\d{4})$/;
 
 const els = {
-  srcLabel: document.getElementById("srcLabel"),
   syncBadge: document.getElementById("syncBadge"),
   syncText: document.getElementById("syncText"),
   refreshBtn: document.getElementById("refreshBtn"),
@@ -1218,9 +1217,7 @@ async function boot() {
     const hidden = new Set(HIDDEN_COLUMNS);
     state.visible = data.columns.map((_, col) => col).filter((col) => !hidden.has(data.columns[col]));
     loadWidths();
-    els.srcLabel.textContent = `${data.source} / ${data.sheet}`;
   } catch (error) {
-    els.srcLabel.textContent = "data gagal dimuat";
     els.tableEmpty.hidden = false;
     els.emptyMsg.textContent = "Data tidak dapat dimuat. Muat ulang halaman untuk mencoba lagi.";
     els.emptyReset.hidden = true;

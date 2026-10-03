@@ -64,12 +64,6 @@ button, input { font: inherit; color: inherit; }
   letter-spacing: -0.015em;
 }
 
-.brand .sub {
-  font-size: 12.5px;
-  color: var(--muted);
-  margin-top: 1px;
-}
-
 .topbar-actions {
   display: flex;
   align-items: center;
