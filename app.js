@@ -1,6 +1,6 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
-const APP_VERSION = "20261003-2";
+const APP_VERSION = "20261003-3";
 
 const PAGE_SIZE = 50;
 const LIST_RENDER_LIMIT = 500;
@@ -52,6 +52,7 @@ const state = {
   rows: [],
   visible: [],
   widths: new Map(),
+  tickWidth: 0,
   filters: new Map(),
   quick: "",
   sort: null,
@@ -153,6 +154,65 @@ function applyColumnWidth(col) {
   for (const cell of els.tbody.querySelectorAll(`td[data-col="${col}"]`)) applyColumnStyle(cell, col);
 }
 
+// Saat tabel melebar mengisi layar, lebar tiap kolom dibagi ulang oleh browser.
+// Bekukan lebar tampilan saat ini dulu agar ubah lebar berikutnya tepat 1:1.
+function captureActualWidths() {
+  const snapshot = [];
+  for (const col of state.visible) {
+    if (state.widths.has(col)) continue;
+    const header = els.headRow.querySelector(`th[data-col="${col}"]`);
+    if (!header) continue;
+    const width = header.getBoundingClientRect().width;
+    if (width > 0) snapshot.push([col, width]);
+  }
+  const tickHead = els.headRow.querySelector("th.tickhead");
+  if (tickHead && !state.tickWidth) state.tickWidth = tickHead.getBoundingClientRect().width;
+  for (const [col, width] of snapshot) {
+    state.widths.set(col, width);
+    applyColumnWidth(col);
+  }
+  if (snapshot.length || state.tickWidth) applyTickWidth();
+}
+
+function applyTickWidth() {
+  const width = state.tickWidth ? `${state.tickWidth}px` : "";
+  const head = els.headRow.querySelector("th.tickhead");
+  if (head) {
+    head.style.width = width;
+    head.style.minWidth = width;
+    head.style.maxWidth = width;
+  }
+  for (const cell of els.tbody.querySelectorAll("td.tickcell")) {
+    cell.style.width = width;
+    cell.style.minWidth = width;
+    cell.style.maxWidth = width;
+  }
+}
+
+// Setelah ada lebar khusus, tabel memakai jumlah lebar kolom (bukan melebar
+// mengisi layar) supaya hasil tarikan sesuai kursor.
+function syncTableWidth() {
+  if (state.widths.size === 0) {
+    els.grid.style.minWidth = "";
+    return;
+  }
+  let total = state.tickWidth;
+  if (!total) {
+    const head = els.headRow.querySelector("th.tickhead");
+    total = head ? head.getBoundingClientRect().width : 52;
+  }
+  for (const col of state.visible) {
+    const stored = state.widths.get(col);
+    if (stored) {
+      total += stored;
+      continue;
+    }
+    const header = els.headRow.querySelector(`th[data-col="${col}"]`);
+    total += header ? header.getBoundingClientRect().width : DEFAULT_WIDTHS.get(state.columns[col]) || 120;
+  }
+  els.grid.style.minWidth = `${Math.ceil(total)}px`;
+}
+
 function refreshFrozenOffsets() {
   const offsets = new Map();
   let left = 0;
@@ -174,8 +234,10 @@ function refreshFrozenOffsets() {
 
 let resizeFrame = null;
 function setColumnWidth(col, width, persist = true) {
+  captureActualWidths();
   state.widths.set(col, Math.max(MIN_COLUMN_WIDTH, Math.round(width)));
   applyColumnWidth(col);
+  syncTableWidth();
   if (resizeFrame) cancelAnimationFrame(resizeFrame);
   resizeFrame = requestAnimationFrame(() => {
     resizeFrame = null;
@@ -185,8 +247,10 @@ function setColumnWidth(col, width, persist = true) {
 }
 
 function resetColumnWidth(col) {
+  captureActualWidths();
   state.widths.delete(col);
   applyColumnWidth(col);
+  syncTableWidth();
   refreshFrozenOffsets();
   persistWidths();
 }
@@ -217,6 +281,8 @@ function beginResize(event, col) {
   event.stopPropagation();
   const handle = event.currentTarget;
   const header = handle.closest("th");
+  captureActualWidths();
+  syncTableWidth();
   const startX = event.clientX;
   const startWidth = header.getBoundingClientRect().width;
   handle.setPointerCapture(event.pointerId);
@@ -396,9 +462,11 @@ function makeResizer(col, name) {
   });
   handle.addEventListener("keydown", (event) => {
     if (event.key === "ArrowLeft") {
+      captureActualWidths();
       setColumnWidth(col, columnWidth(col) - 16);
       event.preventDefault();
     } else if (event.key === "ArrowRight") {
+      captureActualWidths();
       setColumnWidth(col, columnWidth(col) + 16);
       event.preventDefault();
     } else if (event.key === "Enter" || event.key === "Backspace") {
@@ -458,6 +526,8 @@ function renderHead() {
   frag.append(thTick);
   els.headRow.replaceChildren(frag);
   updateTickControls();
+  applyTickWidth();
+  syncTableWidth();
   refreshFrozenOffsets();
 }
 
@@ -543,6 +613,7 @@ function renderRows(slice) {
   const frag = document.createDocumentFragment();
   for (const index of slice) frag.append(buildRow(state.rows[index]));
   els.tbody.replaceChildren(frag);
+  applyTickWidth();
   refreshFrozenOffsets();
 }
 
