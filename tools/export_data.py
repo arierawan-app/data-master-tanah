@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Export sheet "tot_tdk_lengkap" from rekap_tdk_lengkap.xlsx to ../data.json.
+"""Export sheet "dps" from mstrasset_011026.xlsx to ../data.json.
 
 Usage:
-    python3 tools/export_data.py [path/to/rekap_tdk_lengkap.xlsx]
+    python3 tools/export_data.py [path/to/mstrasset_011026.xlsx]
 
 Requires openpyxl (already available in system python3 on this machine).
 """
@@ -15,11 +15,11 @@ from pathlib import Path
 
 import openpyxl
 
-SHEET = "tot_tdk_lengkap"
-DEFAULT_SRC = Path.home() / "Documents" / "mstrasset" / "rekap_tdk_lengkap.xlsx"
+SHEET = "dps"
+DEFAULT_SRC = Path.home() / "Documents" / "mstrasset" / "Atribut Data Tanah" / "mstrasset_011026.xlsx"
 OUT = Path(__file__).resolve().parent.parent / "data.json"
 
-ID_COLS = ("kd_satker", "kd_brg", "no_aset", "ur_sskel", "luas_bidang", "alamat_aset")
+ID_COLS = ("kode_satker", "id_aset", "id_aset_bidang", "kd_brg", "nup", "luas", "alamat_bidang")
 
 
 def norm(value):
@@ -44,6 +44,8 @@ def main():
 
     rows_iter = ws.iter_rows(values_only=True)
     header = [norm(h) for h in next(rows_iter)]
+    while header and not header[-1]:
+        header.pop()
     width = len(header)
     idx = {name: i for i, name in enumerate(header)}
     missing = [c for c in ID_COLS if c not in idx]

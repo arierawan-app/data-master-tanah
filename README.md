@@ -1,7 +1,7 @@
 # Data Master Tanah
 
-Aplikasi web untuk menelusuri rekap berkas tanah dengan dokumen tidak lengkap
-(sheet `tot_tdk_lengkap`, 2.791 baris x 27 kolom). Tampil seperti Excel: filter
+Aplikasi web untuk menelusuri atribut data tanah (sheet `dps` dari
+`mstrasset_011026.xlsx`, 4.725 baris x 15 kolom). Tampil seperti Excel: filter
 tiap kolom, urut, pencarian cepat, dan tanda selesai per baris yang tersinkron
 antar pengguna.
 
@@ -39,10 +39,8 @@ Tidak ada proses build; seluruh berkas statis.
 
 ## Tampilan kolom
 
-- Kolom `No` dan `kd_satker` sampai `jml_bid` dibekukan (sticky) sehingga tetap
+- Kolom `kode_satker` sampai `luas` (kolom J) dibekukan (sticky) sehingga tetap
   terlihat saat tabel digeser ke kanan.
-- Kolom `dok_kepemilikan` sampai `ur_sts_valid_kanwil` disembunyikan dari tabel
-  (datanya tetap lengkap dan tetap ikut ter-export).
 - Lebar kolom diatur pengguna dan disimpan di `localStorage`
   (`dmt.widths.v1`); kolom beku memakai lebar awal dari `DEFAULT_WIDTHS`.
 - Pengaturan ada di `app.js`: `FROZEN_COLUMNS` (kolom beku) dan
@@ -54,12 +52,12 @@ Tidak ada proses build; seluruh berkas statis.
 Jalankan ulang ekspor dari workbook sumber, lalu commit `data.json`:
 
 ```bash
-python3 tools/export_data.py "/path/ke/rekap_tdk_lengkap.xlsx"
+python3 tools/export_data.py "/path/ke/mstrasset_011026.xlsx"
 git add data.json && git commit -m "Perbarui data" && git push
 ```
 
-Setiap baris memiliki `_id` stabil (hash dari satker, kode barang, no aset,
-uraian, luas bidang, dan alamat aset), sehingga tanda tetap terkait dengan
+Setiap baris memiliki `_id` stabil (hash dari satker, id aset, id aset bidang,
+kode barang, NUP, luas, dan alamat bidang), sehingga tanda tetap terkait dengan
 baris yang sama ketika data diekspor ulang.
 
 ## Catatan teknis

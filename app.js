@@ -1,6 +1,6 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
-const APP_VERSION = "20260928-3";
+const APP_VERSION = "20261003-1";
 
 const PAGE_SIZE = 50;
 const LIST_RENDER_LIMIT = 500;
@@ -8,44 +8,35 @@ const LS_TICKS = "dmt.ticks.v1";
 const LS_PENDING = "dmt.pending.v1";
 
 // Kolom yang disembunyikan dari tabel (tidak dihapus dari data/export).
-const HIDDEN_COLUMNS = [
-  "dok_kepemilikan",
-  "jns_dok_kepemilikan",
-  "kd_jns_serti",
-  "nm_jns_serti",
-  "no_dokumen",
-  "tgl_dokumen",
-  "status_sertipikasi",
-  "status_dok",
-  "status_validasi",
-  "ur_sts_valid_kpknl",
-  "ur_sts_valid_kanwil",
-];
+const HIDDEN_COLUMNS = [];
 
-// Kolom beku (sticky) dan lebar awalnya. Lebar bisa diubah pengguna dengan
-// menarik tepi kanan judul kolom; hasilnya disimpan di localStorage.
+// Kolom beku (sticky) sampai kolom "luas" (kolom J) dan lebar awalnya. Lebar
+// bisa diubah pengguna dengan menarik tepi kanan judul kolom; hasilnya
+// disimpan di localStorage.
 const FROZEN_COLUMNS = new Set([
-  "No",
-  "kd_satker",
-  "ur_satker",
-  "ur_sskel",
+  "kode_satker",
+  "nama_satker",
+  "kode_sub_satker",
+  "nama_sub_satker",
+  "id_aset",
+  "id_aset_bidang",
   "kd_brg",
-  "no_aset",
-  "luas_asset",
-  "luas_bidang",
+  "nup",
   "jml_bid",
+  "luas",
 ]);
 
 const DEFAULT_WIDTHS = new Map([
-  ["No", 62],
-  ["kd_satker", 208],
-  ["ur_satker", 170],
-  ["ur_sskel", 132],
+  ["kode_satker", 208],
+  ["nama_satker", 200],
+  ["kode_sub_satker", 208],
+  ["nama_sub_satker", 200],
+  ["id_aset", 100],
+  ["id_aset_bidang", 110],
   ["kd_brg", 116],
-  ["no_aset", 82],
-  ["luas_asset", 98],
-  ["luas_bidang", 106],
+  ["nup", 82],
   ["jml_bid", 80],
+  ["luas", 90],
 ]);
 
 const MIN_COLUMN_WIDTH = 56;
@@ -534,7 +525,7 @@ function buildRow(row) {
   const box = document.createElement("input");
   box.type = "checkbox";
   box.checked = state.ticks.get(row[0]) === true;
-  box.setAttribute("aria-label", `Tandai baris No ${row[1]}`);
+  box.setAttribute("aria-label", `Tandai baris ${row[1]}`);
   box.title = "Tandai baris ini";
   box.addEventListener("change", () => setTicks([[row[0], box.checked]]));
   tdTick.append(box);
