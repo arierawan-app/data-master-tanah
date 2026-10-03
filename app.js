@@ -1,6 +1,6 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
-const APP_VERSION = "20261003-5";
+const APP_VERSION = "20261003-6";
 
 const PAGE_SIZE = 50;
 const LIST_RENDER_LIMIT = 500;
@@ -369,6 +369,16 @@ function matchesMissing(row) {
   return true;
 }
 
+// Baris yang cocok dengan filter kolom/pencarian/tanda, tanpa saringan kartu.
+function getIssueBase() {
+  const out = [];
+  state.rows.forEach((row, index) => {
+    if (state.tickedOnly && state.ticks.get(row[0]) !== true) return;
+    if (matchesQuick(row) && matchesFilters(row)) out.push(index);
+  });
+  return out;
+}
+
 function getFiltered() {
   if (filteredCache) return filteredCache;
   const out = [];
@@ -730,20 +740,21 @@ function render() {
   }
 }
 
-// Kartu ringkasan untuk 5 kolom terakhir: jumlah baris kosong/0 di seluruh
-// data (semua 4.725 baris, tidak terpengaruh filter atau halaman). Klik kartu
-// menambah saringan; beberapa kartu digabung dengan AND.
+// Kartu ringkasan untuk 5 kolom terakhir: jumlah baris kosong/0 pada hasil
+// filter yang sedang aktif (di luar saringan kartu itu sendiri), dari seluruh
+// baris hasil — bukan hanya halaman yang tampil. Klik kartu menambah saringan;
+// beberapa kartu digabung dengan AND.
 function updateIssues() {
   if (!els.issueStrip) return;
   const cols = state.visible.slice(-ISSUE_COUNT);
   if (!cols.length) return;
-  const total = state.rows.length;
+  const base = getIssueBase();
   const frag = document.createDocumentFragment();
   for (const col of cols) {
     const name = state.columns[col];
     let count = 0;
-    for (const row of state.rows) {
-      if (isMissingValue(value(row, col))) count++;
+    for (const index of base) {
+      if (isMissingValue(value(state.rows[index], col))) count++;
     }
     const active = state.missing.has(col);
     const card = document.createElement("button");
@@ -764,9 +775,9 @@ function updateIssues() {
     if (count === 0) num.classList.add("ok");
     const sub = document.createElement("span");
     sub.className = "issue-sub";
-    if (!total) sub.textContent = "tidak ada baris";
+    if (!base.length) sub.textContent = "tidak ada baris";
     else if (count === 0) sub.textContent = "lengkap";
-    else sub.textContent = `${nf1.format((count / total) * 100)}% dari ${nf.format(total)} baris`;
+    else sub.textContent = `${nf1.format((count / base.length) * 100)}% dari ${nf.format(base.length)} baris`;
     card.append(label, num, sub);
     frag.append(card);
   }

@@ -20,9 +20,10 @@ antar pengguna.
 - Kotak centang di kepala kolom tanda menandai semua baris yang sedang tampil
   di halaman aktif.
 - Lima kartu ringkasan untuk 5 kolom terakhir: jumlah baris yang kosong/`0`/
-  `0,0` di seluruh data (tidak terpengaruh filter kolom maupun halaman). Klik
-  satu atau beberapa kartu untuk menyaring baris; beberapa kartu digabung
-  dengan AND. "Reset filter" ikut membersihkan pilihan kartu.
+  `0,0` pada hasil filter yang sedang aktif — dihitung dari seluruh baris hasil,
+  bukan hanya halaman yang tampil. Klik satu atau beberapa kartu untuk menyaring
+  baris; beberapa kartu digabung dengan AND. "Reset filter" ikut membersihkan
+  pilihan kartu.
 - Tombol "Hanya ditandai" (di sebelah Export) menyaring tabel sehingga hanya
   baris yang sudah ditandai yang tampil; bisa digabung dengan filter kolom dan
   pencarian cepat, dan ikut dibersihkan oleh "Reset filter".
