@@ -1,6 +1,6 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
-const APP_VERSION = "20261003-1";
+const APP_VERSION = "20261003-2";
 
 const PAGE_SIZE = 50;
 const LIST_RENDER_LIMIT = 500;
@@ -27,16 +27,21 @@ const FROZEN_COLUMNS = new Set([
 ]);
 
 const DEFAULT_WIDTHS = new Map([
-  ["kode_satker", 208],
-  ["nama_satker", 200],
-  ["kode_sub_satker", 208],
-  ["nama_sub_satker", 200],
-  ["id_aset", 100],
-  ["id_aset_bidang", 110],
-  ["kd_brg", 116],
-  ["nup", 82],
-  ["jml_bid", 80],
-  ["luas", 90],
+  ["kode_satker", 150],
+  ["nama_satker", 120],
+  ["kode_sub_satker", 150],
+  ["nama_sub_satker", 120],
+  ["id_aset", 74],
+  ["id_aset_bidang", 98],
+  ["kd_brg", 96],
+  ["nup", 52],
+  ["jml_bid", 60],
+  ["luas", 64],
+  ["Koordinat Aset", 180],
+  ["Koordinat Bidang", 180],
+  ["alamat_bidang", 200],
+  ["alamat aset new", 200],
+  ["jumlah foto new", 104],
 ]);
 
 const MIN_COLUMN_WIDTH = 56;
@@ -130,7 +135,7 @@ function columnWidth(col) {
 }
 
 function applyColumnStyle(node, col) {
-  const width = state.widths.get(col) ?? (isFrozen(col) ? DEFAULT_WIDTHS.get(state.columns[col]) : undefined);
+  const width = state.widths.get(col) ?? DEFAULT_WIDTHS.get(state.columns[col]);
   if (width) {
     node.style.width = `${width}px`;
     node.style.minWidth = `${width}px`;
@@ -154,7 +159,8 @@ function refreshFrozenOffsets() {
   for (const col of state.visible) {
     if (!isFrozen(col)) break;
     offsets.set(col, left);
-    left += columnWidth(col);
+    const header = els.headRow.querySelector(`th[data-col="${col}"]`);
+    left += header ? header.getBoundingClientRect().width : columnWidth(col);
   }
   for (const node of els.headRow.querySelectorAll("th.frozen")) {
     const col = Number(node.dataset.col);
@@ -517,7 +523,7 @@ function buildRow(row) {
     }
     applyColumnStyle(td, col);
     td.textContent = text;
-    if (text.length > 24) td.title = text;
+    if (text.length > 12) td.title = text;
     tr.append(td);
   });
   const tdTick = document.createElement("td");
@@ -1030,7 +1036,10 @@ document.addEventListener("mousedown", (event) => {
 });
 
 els.tableWrap.addEventListener("scroll", closePanel);
-window.addEventListener("resize", closePanel);
+window.addEventListener("resize", () => {
+  closePanel();
+  requestAnimationFrame(refreshFrozenOffsets);
+});
 window.addEventListener("offline", () => { if (supabase) setSync("offline"); });
 window.addEventListener("online", () => {
   if (!supabase) return;

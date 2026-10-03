@@ -42,7 +42,10 @@ Tidak ada proses build; seluruh berkas statis.
 - Kolom `kode_satker` sampai `luas` (kolom J) dibekukan (sticky) sehingga tetap
   terlihat saat tabel digeser ke kanan.
 - Lebar kolom diatur pengguna dan disimpan di `localStorage`
-  (`dmt.widths.v1`); kolom beku memakai lebar awal dari `DEFAULT_WIDTHS`.
+  (`dmt.widths.v1`); semua kolom memakai lebar awal dari `DEFAULT_WIDTHS` yang
+  ringkas agar kolom K–O tetap terlihat, dan teks yang terpotong menampilkan
+  tooltip. Tabel memakai lebar penuh layar bila ruang mencukupi dan dapat
+  digeser horizontal (scrollbar selalu tampil) bila tidak.
 - Pengaturan ada di `app.js`: `FROZEN_COLUMNS` (kolom beku) dan
   `HIDDEN_COLUMNS` (kolom yang disembunyikan). Di layar sempit (<= 1100px)
   pembekuan horizontal otomatis dinonaktifkan; ubah lebar kolom tetap bisa.

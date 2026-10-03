@@ -248,10 +248,24 @@ button, input { font: inherit; color: inherit; }
   background: var(--surface);
 }
 
+.tablewrap::-webkit-scrollbar { width: 12px; height: 12px; }
+.tablewrap::-webkit-scrollbar-track { background: var(--paper); }
+
+.tablewrap::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border: 3px solid var(--surface);
+  border-radius: 7px;
+}
+
+.tablewrap::-webkit-scrollbar-thumb:hover { background: #aeb9af; }
+
+.tablewrap { scrollbar-width: thin; scrollbar-color: var(--line-strong) var(--paper); }
+
 table {
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13px;
+  min-width: 100%;
 }
 
 thead th {
@@ -302,6 +316,7 @@ body.resizing { cursor: col-resize; user-select: none; }
   gap: 0;
   padding: 4px 4px 4px 10px;
   min-height: 38px;
+  overflow: hidden;
 }
 
 .th-sort {
@@ -313,6 +328,9 @@ body.resizing { cursor: col-resize; user-select: none; }
   letter-spacing: 0.005em;
   cursor: pointer;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 thead th[data-sorted="asc"] .th-sort::after { content: " ↑"; color: var(--verdigris); }
