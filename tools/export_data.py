@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Export sheet "dps" from mstrasset_011026.xlsx to ../data.json.
 
+Rows yang lengkap pada 5 kolom terakhir (tidak ada blank, "0", maupun "0,0")
+dibuang — aplikasi hanya memuat baris yang bermasalah.
+
 Usage:
     python3 tools/export_data.py [path/to/mstrasset_011026.xlsx]
 
@@ -10,6 +13,7 @@ Requires openpyxl (already available in system python3 on this machine).
 import datetime
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -20,6 +24,8 @@ DEFAULT_SRC = Path.home() / "Documents" / "mstrasset" / "Atribut Data Tanah" / "
 OUT = Path(__file__).resolve().parent.parent / "data.json"
 
 ID_COLS = ("kode_satker", "id_aset", "id_aset_bidang", "kd_brg", "nup", "luas", "alamat_bidang")
+ISSUE_COUNT = 5
+ZERO_RE = re.compile(r"^[+-]?0+(?:[.,]0+)?$")
 
 
 def norm(value):
@@ -30,6 +36,10 @@ def norm(value):
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     return str(value).strip()
+
+
+def is_filled(text):
+    return text != "" and not ZERO_RE.match(text)
 
 
 def main():
@@ -54,10 +64,15 @@ def main():
 
     seen = {}
     rows = []
+    dropped = 0
+    issue_idx = [idx[name] for name in header[-ISSUE_COUNT:]]
     for raw in rows_iter:
         values = [norm(v) for v in raw[:width]]
         values += [""] * (width - len(values))
         if not any(values):
+            continue
+        if all(is_filled(values[i]) for i in issue_idx):
+            dropped += 1
             continue
         key = "|".join(values[idx[c]] for c in ID_COLS)
         occurrence = seen.get(key, 0) + 1
@@ -77,7 +92,10 @@ def main():
         json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
-    print(f"{len(rows)} rows x {width} columns -> {OUT} ({OUT.stat().st_size / 1e6:.2f} MB)")
+    print(
+        f"{len(rows)} rows x {width} columns (dropped {dropped} complete rows) "
+        f"-> {OUT} ({OUT.stat().st_size / 1e6:.2f} MB)"
+    )
 
 
 if __name__ == "__main__":

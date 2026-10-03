@@ -1,9 +1,10 @@
 # Data Master Tanah
 
 Aplikasi web untuk menelusuri atribut data tanah (sheet `dps` dari
-`mstrasset_011026.xlsx`, 4.725 baris x 15 kolom). Tampil seperti Excel: filter
-tiap kolom, urut, pencarian cepat, dan tanda selesai per baris yang tersinkron
-antar pengguna.
+`mstrasset_011026.xlsx`, 3.609 baris x 15 kolom). Baris yang lengkap pada 5
+kolom terakhir dibuang saat ekspor, jadi aplikasi hanya memuat baris yang
+bermasalah. Tampil seperti Excel: filter tiap kolom, urut, pencarian cepat, dan
+tanda selesai per baris yang tersinkron antar pengguna.
 
 **Alamat aplikasi:** https://arierawan-app.github.io/data-master-tanah/
 
@@ -68,7 +69,8 @@ git add data.json && git commit -m "Perbarui data" && git push
 
 Setiap baris memiliki `_id` stabil (hash dari satker, id aset, id aset bidang,
 kode barang, NUP, luas, dan alamat bidang), sehingga tanda tetap terkait dengan
-baris yang sama ketika data diekspor ulang.
+baris yang sama ketika data diekspor ulang. Ekspor membuang baris yang lengkap
+pada 5 kolom terakhir (tidak ada blank, `0`, maupun `0,0`).
 
 ## Catatan teknis
 
