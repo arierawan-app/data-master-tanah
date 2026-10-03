@@ -26,9 +26,9 @@ tanda selesai per baris yang tersinkron antar pengguna.
   baris; beberapa kartu digabung dengan AND. "Reset filter" ikut membersihkan
   pilihan kartu.
 - Halaman pivot sederhana (`pivot.html`, tombol "Pivot" di header): pilih kolom
-  kelompok baris, ukuran (jumlah baris, Σ luas, hitung kosong/`0` per kolom),
-  saring baris dengan pencarian, urutkan, dan export hasil pivot ke Excel/CSV.
-  Pengaturan tersimpan di browser (`dmt.pivot.v1`).
+  kelompok baris, ukuran (jumlah baris, Σ luas, hitung kosong/`0` untuk 5 kolom
+  terakhir), saring baris dengan pencarian, urutkan, dan export hasil pivot ke
+  Excel/CSV. Pengaturan tersimpan di browser (`dmt.pivot.v1`).
 - Tombol "Hanya ditandai" (di sebelah Export) menyaring tabel sehingga hanya
   baris yang sudah ditandai yang tampil; bisa digabung dengan filter kolom dan
   pencarian cepat, dan ikut dibersihkan oleh "Reset filter".

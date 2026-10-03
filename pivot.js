@@ -1,4 +1,4 @@
-const APP_VERSION = "20261003-9";
+const APP_VERSION = "20261003-10";
 
 const PAGE_SIZE = 50;
 const ISSUE_COUNT = 5;
@@ -39,6 +39,11 @@ const collator = new Intl.Collator("id", { numeric: true, sensitivity: "base" })
 const nf = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 });
 
 const value = (row, col) => row[col + 1];
+
+// Hanya 5 kolom terakhir yang ditawarkan sebagai indikator kosong/0.
+function issueColumns() {
+  return state.columns.map((_, col) => col).slice(-ISSUE_COUNT);
+}
 
 function isMissingValue(text) {
   const v = text.trim();
@@ -84,7 +89,7 @@ function loadPrefs() {
     const missing = new Set();
     for (const name of stored.missing || []) {
       const col = state.columns.indexOf(name);
-      if (col >= 0) missing.add(col);
+      if (col >= state.columns.length - ISSUE_COUNT) missing.add(col);
     }
     state.missing = missing;
   } catch {}
@@ -390,7 +395,8 @@ function watchVersion() {
 
 function buildMissingBoxes() {
   const frag = document.createDocumentFragment();
-  state.columns.forEach((name, col) => {
+  for (const col of issueColumns()) {
+    const name = state.columns[col];
     const label = document.createElement("label");
     label.className = "check-inline";
     const box = document.createElement("input");
@@ -408,7 +414,7 @@ function buildMissingBoxes() {
     text.textContent = name;
     label.append(box, text);
     frag.append(label);
-  });
+  }
   els.missingBoxes.replaceChildren(frag);
 }
 
@@ -466,7 +472,7 @@ async function boot() {
     state.rows = data.rows;
     state.luasCol = data.columns.indexOf("luas");
     state.groupCol = Math.max(0, data.columns.indexOf("nama_satker"));
-    state.missing = new Set(data.columns.map((_, col) => col).filter((col) => col >= data.columns.length - ISSUE_COUNT));
+    state.missing = new Set(issueColumns());
     loadPrefs();
   } catch (error) {
     els.empty.hidden = false;
