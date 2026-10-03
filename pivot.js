@@ -1,4 +1,4 @@
-const APP_VERSION = "20261003-11";
+const APP_VERSION = "20261003-12";
 
 const ISSUE_COUNT = 5;
 const ZERO_PATTERN = /^[+-]?0+(?:[.,]0+)?$/;
