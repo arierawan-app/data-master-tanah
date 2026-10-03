@@ -1,4 +1,4 @@
-const APP_VERSION = "20261003-12";
+const APP_VERSION = "20261003-13";
 
 const ISSUE_COUNT = 5;
 const ZERO_PATTERN = /^[+-]?0+(?:[.,]0+)?$/;
@@ -168,7 +168,7 @@ function renderHead(measureList) {
   const frag = document.createDocumentFragment();
   frag.append(makeSortButton("No", "no", "pivot-no"));
   frag.append(makeSortButton(state.columns[state.kodeCol], "kode"));
-  frag.append(makeSortButton(state.columns[state.namaCol], "nama"));
+  frag.append(makeSortButton(state.columns[state.namaCol], "nama", "pivot-nama"));
   for (const measure of measureList) {
     frag.append(makeSortButton(measure.label, measure.key, "num"));
   }
@@ -193,8 +193,8 @@ function renderBody(groups, measureList) {
     if (group.kode.length > 24) tdKode.title = group.kode;
     tr.append(tdKode);
     const tdNama = document.createElement("td");
+    tdNama.className = "pivot-nama";
     tdNama.textContent = group.nama === "" ? "(kosong)" : group.nama;
-    if (group.nama.length > 24) tdNama.title = group.nama;
     tr.append(tdNama);
     for (const measure of measureList) {
       const td = document.createElement("td");
