@@ -22,14 +22,19 @@ tanda selesai per baris yang tersinkron antar pengguna.
   di halaman aktif.
 - Lima kartu ringkasan untuk 5 kolom terakhir: jumlah baris yang kosong/`0`/
   `0,0` pada hasil filter yang sedang aktif — dihitung dari seluruh baris hasil,
-  bukan hanya halaman yang tampil. Klik satu atau beberapa kartu untuk menyaring
-  baris; beberapa kartu digabung dengan AND. "Reset filter" ikut membersihkan
-  pilihan kartu.
+  bukan hanya halaman yang tampil. Kartu berwarna merah bila masih ada baris
+  kosong/`0` (angka selain 0) dan hijau muda bila tidak ada (0). Klik satu atau
+  beberapa kartu untuk menyaring baris; beberapa kartu digabung dengan AND.
+  "Reset filter" ikut membersihkan pilihan kartu.
 - Halaman pivot sederhana (`pivot.html`, tombol "Pivot" di header): tabel
   pivot dengan kolom tetap No, `kode_satker`, dan `nama_satker`; ukuran (jumlah
   baris, Σ luas, hitung kosong/`0` untuk 5 kolom terakhir), saring baris dengan
   pencarian, urutkan tiap kolom, tanpa pagination, dan export hasil pivot ke
-  Excel/CSV. Pengaturan tersimpan di browser (`dmt.pivot.v1`).
+  Excel/CSV. Klik nilai `kode_satker` atau `nama_satker` untuk membuka halaman
+  tabel dengan filter kolom tersebut (mis. `index.html?kode_satker=...`);
+  filter langsung diterapkan lewat pencocokan persis, param URL dibersihkan
+  setelah dibaca, dan "Reset filter" menghapusnya. Pengaturan tersimpan di
+  browser (`dmt.pivot.v1`).
 - Tombol "Hanya ditandai" (di sebelah Export) menyaring tabel sehingga hanya
   baris yang sudah ditandai yang tampil; bisa digabung dengan filter kolom dan
   pencarian cepat, dan ikut dibersihkan oleh "Reset filter".

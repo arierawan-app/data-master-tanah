@@ -1,6 +1,6 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 
-const APP_VERSION = "20261003-13";
+const APP_VERSION = "20261004-14";
 
 const PAGE_SIZE = 50;
 const LIST_RENDER_LIMIT = 500;
@@ -474,6 +474,32 @@ function updateResetState() {
   els.resetFilters.disabled = !isFiltering();
 }
 
+// Filter dari tautan pivot: index.html?kode_satker=...&nama_satker=...
+// Nilai dicocokkan persis pada kolom yang namanya dipakai sebagai parameter.
+function applyUrlFilters() {
+  const params = new URLSearchParams(location.search);
+  const applied = [];
+  for (const [name, val] of params) {
+    if (val === "") continue;
+    const col = state.columns.indexOf(name);
+    if (col < 0) continue;
+    state.filters.set(col, { values: new Set([val]), none: false, contains: "" });
+    applied.push(`${name}: ${val}`);
+  }
+  if (!applied.length) return;
+  try {
+    const url = new URL(location.href);
+    for (const name of [...url.searchParams.keys()]) {
+      if (state.columns.includes(name)) url.searchParams.delete(name);
+    }
+    history.replaceState(null, "", url.pathname + url.search + url.hash);
+  } catch {}
+  filteredCache = null;
+  updateHeadIndicators();
+  updateResetState();
+  toast(`Filter dari pivot — ${applied.join(", ")}`);
+}
+
 function makeResizer(col, name) {
   const handle = document.createElement("span");
   handle.className = "resizer";
@@ -759,6 +785,7 @@ function updateIssues() {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "issue-card";
+    card.classList.add(count === 0 ? "ok" : "alert");
     card.dataset.col = String(col);
     card.setAttribute("aria-pressed", String(active));
     card.title = active
@@ -771,7 +798,6 @@ function updateIssues() {
     const num = document.createElement("span");
     num.className = "issue-num";
     num.textContent = nf.format(count);
-    if (count === 0) num.classList.add("ok");
     const sub = document.createElement("span");
     sub.className = "issue-sub";
     if (!base.length) sub.textContent = "tidak ada baris";
@@ -1225,6 +1251,7 @@ async function boot() {
     return;
   }
   renderHead();
+  applyUrlFilters();
   updateResetState();
   watchVersion();
   await initTicks();

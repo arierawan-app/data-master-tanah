@@ -1,4 +1,4 @@
-const APP_VERSION = "20261003-13";
+const APP_VERSION = "20261004-14";
 
 const ISSUE_COUNT = 5;
 const ZERO_PATTERN = /^[+-]?0+(?:[.,]0+)?$/;
@@ -175,6 +175,24 @@ function renderHead(measureList) {
   els.headRow.replaceChildren(frag);
 }
 
+// Nilai kode_satker / nama_satker dibuat tautan ke halaman tabel dengan filter
+// kolom tersebut, mis. index.html?kode_satker=1234.
+function makeValueCell(col, text, cellClass, emptyLabel = "") {
+  const td = document.createElement("td");
+  if (cellClass) td.className = cellClass;
+  if (text === "") {
+    td.textContent = emptyLabel;
+    return td;
+  }
+  const link = document.createElement("a");
+  link.className = "pivot-link";
+  link.href = `index.html?${encodeURIComponent(state.columns[col])}=${encodeURIComponent(text)}`;
+  link.textContent = text;
+  link.title = `Buka tabel dengan filter ${state.columns[col]}: ${text}`;
+  td.append(link);
+  return td;
+}
+
 function renderBody(groups, measureList) {
   if (!groups.length) {
     els.body.replaceChildren();
@@ -188,14 +206,8 @@ function renderBody(groups, measureList) {
     tdNo.className = "pivot-no";
     tdNo.textContent = String(index + 1);
     tr.append(tdNo);
-    const tdKode = document.createElement("td");
-    tdKode.textContent = group.kode;
-    if (group.kode.length > 24) tdKode.title = group.kode;
-    tr.append(tdKode);
-    const tdNama = document.createElement("td");
-    tdNama.className = "pivot-nama";
-    tdNama.textContent = group.nama === "" ? "(kosong)" : group.nama;
-    tr.append(tdNama);
+    tr.append(makeValueCell(state.kodeCol, group.kode));
+    tr.append(makeValueCell(state.namaCol, group.nama, "pivot-nama", "(kosong)"));
     for (const measure of measureList) {
       const td = document.createElement("td");
       td.className = "num";
